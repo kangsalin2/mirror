@@ -22,6 +22,7 @@ from bot.helper.telegram_helper.bot_commands import BotCommands
 from bot.helper.telegram_helper.filters import CustomFilters
 from bot.helper.telegram_helper.message_utils import *
 from bot.helper.telegram_helper import button_build
+from bot.helper.mirror_utils.upload_utils.gdriveTools import GoogleDriveHelper
 import urllib
 import pathlib
 import os
@@ -37,6 +38,7 @@ ariaDlManager = AriaDownloadHelper()
 ariaDlManager.start_listener()
 
 class MirrorListener(listeners.MirrorListeners):
+    
     def __init__(self, bot, update, pswd, isTar=False, extract=False, isZip=False, isQbit=False):
         super().__init__(bot, update)
         self.isTar = isTar
@@ -154,15 +156,15 @@ class MirrorListener(listeners.MirrorListeners):
 
     def onUploadComplete(self, link: str, size, files, folders, typ):
         with download_dict_lock:
-            msg = f'<b>☞ 📂Filename : </b><code>{download_dict[self.uid].name()}</code>\n<b>☞ 📦Size : </b><code>{size}</code>'
+            msg = f'<b>Nama: </b><code>{download_dict[self.uid].name()}</code>\n\n<b> ↳Ukuran: </b><code>{size}</code>'
             if os.path.isdir(f'{DOWNLOAD_DIR}/{self.uid}/{download_dict[self.uid].name()}'):
-                msg += '\n<b>☞ 🌀Type : </b><code>Folder</code>'
-                msg += f'\n<b>☞ 🗳Powerd by : @budy_RangerDark</b>'
+                msg += f'\n<b> ↳Folders: </b><code>{folders}</code>'
+                msg += f'\n<b> ↳Files: </b><code>{files}</code>'
             else:
-                msg += f'\n<b>☞ 🗳Powerd by : @budy_RangerDark</b>'
+                msg += f'\n<b> ↳Type: </b><code>{typ}</code>'
             buttons = button_build.ButtonMaker()
             if SHORTENER is not None and SHORTENER_API is not None:
-                surl = requests.get(f'https://{SHORTENER}/st?api={SHORTENER_API}&url={link}&format=text').text
+                surl = requests.get(f'https://{SHORTENER}/api?api={SHORTENER_API}&url={link}&format=text').text
                 buttons.buildbutton("🌠 Drive Link 🌠", surl)
             else:
                 buttons.buildbutton("🌠 Drive Link 🌠", link)
@@ -173,15 +175,15 @@ class MirrorListener(listeners.MirrorListeners):
                 if os.path.isdir(f'{DOWNLOAD_DIR}/{self.uid}/{download_dict[self.uid].name()}'):
                     share_url += '/'
                     if SHORTENER is not None and SHORTENER_API is not None:
-                        siurl = requests.get(f'https://{SHORTENER}/st?api={SHORTENER_API}&url={share_url}&format=text').text
+                        siurl = requests.get(f'https://{SHORTENER}/api?api={SHORTENER_API}&url={share_url}&format=text').text
                         buttons.buildbutton("☄️ Index Link ☄️", siurl)
                     else:
                         buttons.buildbutton("☄️ Index Link ☄️", share_url)
                 else:
                     share_urls = f'{INDEX_URL}/{url_path}?a=view'
                     if SHORTENER is not None and SHORTENER_API is not None:
-                        siurl = requests.get(f'https://{SHORTENER}/st?api={SHORTENER_API}&url={share_url}&format=text').text
-                        siurls = requests.get(f'https://{SHORTENER}/st?api={SHORTENER_API}&url={share_urls}&format=text').text
+                        siurl = requests.get(f'https://{SHORTENER}/api?api={SHORTENER_API}&url={share_url}&format=text').text
+                        siurls = requests.get(f'https://{SHORTENER}/api?api={SHORTENER_API}&url={share_urls}&format=text').text
                         buttons.buildbutton("☄️ Index Link ☄️", siurl)
                         if VIEW_LINK:
                             buttons.buildbutton(" View Link", siurls)
@@ -190,7 +192,7 @@ class MirrorListener(listeners.MirrorListeners):
                         if VIEW_LINK:
                             buttons.buildbutton(" View Link", share_urls)
             if BUTTON_FOUR_NAME is not None and BUTTON_FOUR_URL is not None:
-                buttons.buildbutton(f"{BUTTON_FOUR_NAME}", f"{BUTTON_FOUR_URL}{link}")
+                buttons.buildbutton(f"{BUTTON_FOUR_NAME}", f"{BUTTON_FOUR_URL}")
             if BUTTON_FIVE_NAME is not None and BUTTON_FIVE_URL is not None:
                 buttons.buildbutton(f"{BUTTON_FIVE_NAME}", f"{BUTTON_FIVE_URL}")
             if BUTTON_SIX_NAME is not None and BUTTON_SIX_URL is not None:
@@ -380,10 +382,14 @@ def unzip_mirror(update, context):
 def zip_mirror(update, context):
     _mirror(context.bot, update, True, isZip=True)
 
-mirror_handler = CommandHandler(BotCommands.MirrorCommand, mirror, run_async=True)
-tar_mirror_handler = CommandHandler(BotCommands.TarMirrorCommand, tar_mirror, run_async=True)
-unzip_mirror_handler = CommandHandler(BotCommands.UnzipMirrorCommand, unzip_mirror, run_async=True)
-zip_mirror_handler = CommandHandler(BotCommands.ZipMirrorCommand, zip_mirror, run_async=True)
+mirror_handler = CommandHandler(BotCommands.MirrorCommand, mirror,
+                                filters=CustomFilters.authorized_chat | CustomFilters.authorized_user, run_async=True)
+tar_mirror_handler = CommandHandler(BotCommands.TarMirrorCommand, tar_mirror,
+                                    filters=CustomFilters.authorized_chat | CustomFilters.authorized_user, run_async=True)
+unzip_mirror_handler = CommandHandler(BotCommands.UnzipMirrorCommand, unzip_mirror,
+                                      filters=CustomFilters.authorized_chat | CustomFilters.authorized_user, run_async=True)
+zip_mirror_handler = CommandHandler(BotCommands.ZipMirrorCommand, zip_mirror,
+                                    filters=CustomFilters.authorized_chat | CustomFilters.authorized_user, run_async=True)
 dispatcher.add_handler(mirror_handler)
 dispatcher.add_handler(tar_mirror_handler)
 dispatcher.add_handler(unzip_mirror_handler)
